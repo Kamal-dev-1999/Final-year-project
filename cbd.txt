@@ -1,0 +1,231 @@
+@startuml
+' Style and layout settings for better readability
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+hide empty members
+
+title **1. User Management & Authentication Module**
+
+' Base User Class
+class User {
+  -userId: string
+  -username: string
+  -email: string
+  -passwordHash: string
+  -role: string
+  -createdAt: timestamp
+  +register()
+  +login(password: string): Session
+  +logout()
+  +getProfile(): UserDetails
+  +updateProfile(details: UserDetails)
+}
+
+' Admin inherits from User
+class Admin extends User {
+  +createContest(details: ContestDetails): Contest
+  +manageProblem(problemId: string): Problem
+  +viewAllSubmissions()
+  +manageUser(userId: string)
+  +viewDashboard(): DashboardData
+}
+
+' Student inherits from User
+class Student extends User {
+  -studentId: string
+  -branch: string
+  -year: int
+  +viewContests(): List<Contest>
+  +startTest(contestId: string): TestSession
+  +viewMySubmissions(): List<Submission>
+}
+
+' Session Manager for security
+class SessionManager {
+  -activeSessions: Map<userId, Session>
+  +createSession(user: User): Session
+  +validateSession(token: string): boolean
+  +terminateSession(userId: string)
+  +isSessionActive(userId: string): boolean
+}
+
+' Session object
+class Session {
+  -sessionId: string
+  -userId: string
+  -token: string
+  -deviceInfo: string
+  -loginTime: timestamp
+  -expiresAt: timestamp
+}
+
+' Relationships
+Admin --|> User
+Student --|> User
+User "1" -- "1..*" Session : has
+SessionManager "1" -- "*" Session : manages
+
+@enduml
+
+@startuml
+' Style and layout settings
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+hide empty members
+
+title **2. Contest & Problem Management Module**
+
+class Contest {
+  -contestId: string
+  -title: string
+  -description: string
+  -startTime: timestamp
+  -endTime: timestamp
+  -createdBy: Admin
+  +getProblems(): List<Problem>
+  +addProblem(problem: Problem)
+  +removeProblem(problemId: string)
+  +getLeaderboard(): Leaderboard
+}
+
+class Problem {
+  -problemId: string
+  -title: string
+  -statement: string
+  -difficulty: string
+  -points: int
+  -timeLimit: int
+  -memoryLimit: int
+  -averageSolveTime: int
+  +addTestCase(testCase: TestCase)
+  +getTestCases(): List<TestCase>
+  +updateAverageTime(newTime: int)
+}
+
+class TestCase {
+  -testCaseId: string
+  -input: string
+  -expectedOutput: string
+  -isHidden: boolean
+}
+
+' Relationships
+Admin "1" -- "*" Contest : creates/manages
+Contest "1" -- "1..*" Problem : contains
+Problem "1" -- "1..*" TestCase : has
+@enduml
+
+@startuml
+' Style and layout settings
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+hide empty members
+
+title **3. Test Taking & Submission Module**
+
+class TestSession {
+  -sessionId: string
+  -student: Student
+  -contest: Contest
+  -startTime: timestamp
+  -endTime: timestamp
+  -isFullScreen: boolean
+  -isTabActive: boolean
+  +start()
+  +end()
+  +monitorActivity()
+  +submitCode(problemId: string, code: string): Submission
+}
+
+class CodeEditor {
+  -language: string
+  -content: string
+  -isPasteEnabled: boolean
+  +getContent(): string
+  +setContent(code: string)
+  +disablePaste()
+  +realtimeSyntaxCheck()
+}
+
+class Submission {
+  -submissionId: string
+  -problemId: string
+  -studentId: string
+  -code: string
+  -language: string
+  -submissionTime: timestamp
+  -status: string  // (e.g., Pending, Accepted, Wrong Answer)
+  -executionTime: float
+  -memoryUsed: int
+  +getResults(): TestResult[]
+}
+
+class CompilerService {
+  +execute(code: string, language: string, input: string): ExecutionOutput
+}
+
+class ExecutionOutput {
+    -output: string
+    -error: string
+    -executionTime: float
+    -memoryUsed: int
+}
+
+' Relationships
+TestSession "1" -- "1" CodeEditor : uses
+TestSession "1" -- "*" Submission : generates
+Submission "1" -- "1" CompilerService : is processed by
+Student "1" -- "*" TestSession : participates in
+@enduml
+
+@startuml
+' Style and layout settings
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+hide empty members
+
+title **4. Evaluation & AI Security Module**
+
+class EvaluationEngine {
+  +evaluateSubmission(submission: Submission): EvaluationResult
+}
+
+class EvaluationResult {
+  -submissionId: string
+  -finalStatus: string
+  -passedCases: int
+  -totalCases: int
+  -plagiarismFlag: boolean
+  -timeAnalysisFlag: boolean
+}
+
+class PlagiarismDetector {
+  -similarityThreshold: float
+  +analyze(submission: Submission, allSubmissions: List<Submission>): PlagiarismResult
+}
+
+class TimeAnalyzer {
+  -timeDeviationFactor: float
+  +analyze(submission: Submission, problem: Problem): TimeAnalysisResult
+}
+
+class Leaderboard {
+  -contestId: string
+  +getRankings(): List<RankingEntry>
+  +updateRank(submission: Submission)
+}
+
+class RankingEntry {
+  -rank: int
+  -student: Student
+  -score: int
+  -totalTime: float
+}
+
+' Relationships
+EvaluationEngine "1" -- "1" PlagiarismDetector : uses >
+EvaluationEngine "1" -- "1" TimeAnalyzer : uses >
+EvaluationEngine "1" o-- "1" Submission
+Leaderboard "1" -- "*" RankingEntry : consists of
+Contest "1" -- "1" Leaderboard : has
+@enduml
