@@ -206,6 +206,9 @@ class UserActivitySerializer(serializers.ModelSerializer):
         )
 
 
+from rest_framework import serializers
+from .models import Submission
+
 class SubmissionAnalyticsSerializer(serializers.ModelSerializer):
     """Enhanced submission serializer with analytics and security data"""
     user_username = serializers.CharField(source='user.username', read_only=True)
@@ -213,7 +216,11 @@ class SubmissionAnalyticsSerializer(serializers.ModelSerializer):
     problem_title = serializers.CharField(source='problem.title', read_only=True)
     contest_title = serializers.CharField(source='problem.contest.title', read_only=True)
     language_name = serializers.SerializerMethodField()
-    ip_address = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    
+    # Direct model fields, no need for 'source'
+    ip_address = serializers.CharField(read_only=True)
+    user_agent = serializers.CharField(read_only=True)
+    session_id = serializers.CharField(read_only=True)
 
     class Meta:
         model = Submission
@@ -225,7 +232,7 @@ class SubmissionAnalyticsSerializer(serializers.ModelSerializer):
             'ip_address', 'user_agent', 'session_id', 'time_spent_coding',
             'keystrokes_count', 'copy_paste_events', 'tab_switches', 'code_similarity_score'
         )
-    
+
     def get_language_name(self, obj):
         """Map language ID to readable name"""
         language_mapping = {
@@ -235,7 +242,6 @@ class SubmissionAnalyticsSerializer(serializers.ModelSerializer):
             72: 'Ruby (2.7.0)', 73: 'Rust (1.40.0)', 78: 'Kotlin (1.3.70)'
         }
         return language_mapping.get(obj.language_id, f'Language ID {obj.language_id}')
-
 
 class PlagiarismCheckSerializer(serializers.ModelSerializer):
     """Serializer for plagiarism detection results"""

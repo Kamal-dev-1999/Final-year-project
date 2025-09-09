@@ -219,38 +219,83 @@ export default function SubmissionAnalytics({ contestId }) {
       </TableContainer>
 
       {/* Code View Dialog */}
-      <Dialog open={codeViewDialog} onClose={handleCloseDialog} maxWidth="md" fullWidth>
-        <DialogTitle>
-          Submission Details
-          <IconButton
-            aria-label="close"
-            onClick={handleCloseDialog}
-            sx={{ position: 'absolute', right: 8, top: 8 }}
-          >
-            <CloseIcon />
-          </IconButton>
-        </DialogTitle>
-        <DialogContent>
-          {selectedSubmission && (
-            <Box>
-              <Typography variant="h6" gutterBottom>{selectedSubmission.problem_title}</Typography>
-              <Typography variant="subtitle1" color="text.secondary" gutterBottom>
-                Submitted by {selectedSubmission.username}
-              </Typography>
-              <pre
-                style={{
-                  backgroundColor: '#f5f5f5',
-                  padding: '16px',
-                  borderRadius: '4px',
-                  overflow: 'auto'
-                }}
-              >
-                {selectedSubmission.source_code}
-              </pre>
-            </Box>
-          )}
-        </DialogContent>
-      </Dialog>
+<Dialog open={codeViewDialog} onClose={handleCloseDialog} maxWidth="lg" fullWidth>
+  <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+    <Typography variant="h6">{selectedSubmission?.problem_title}</Typography>
+    <IconButton onClick={handleCloseDialog}>
+      <CloseIcon />
+    </IconButton>
+  </DialogTitle>
+
+  <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+    {/* Submission Info */}
+    <Paper sx={{ p: 3, borderRadius: 3, boxShadow: 3, display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+        <Typography variant="subtitle2" color="text.secondary">Submitted By</Typography>
+        <Typography variant="body1">{selectedSubmission?.username}</Typography>
+      </Box>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+        <Typography variant="subtitle2" color="text.secondary">Submitted At</Typography>
+        <Typography variant="body1">{new Date(selectedSubmission?.submitted_at).toLocaleString()}</Typography>
+      </Box>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+        <Typography variant="subtitle2" color="text.secondary">IP Address</Typography>
+        <Typography variant="body1">{selectedSubmission?.ip_address || '-'}</Typography>
+      </Box>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, flex: 1 }}>
+        <Typography variant="subtitle2" color="text.secondary">User Agent</Typography>
+        <Typography variant="body2" sx={{ wordBreak: 'break-word' }}>{selectedSubmission?.user_agent || '-'}</Typography>
+      </Box>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+        <Typography variant="subtitle2" color="text.secondary">Session ID</Typography>
+        <Typography variant="body1">{selectedSubmission?.session_id || '-'}</Typography>
+      </Box>
+    </Paper>
+
+    {/* Analytics & Security */}
+    <Paper sx={{ p: 3, borderRadius: 3, boxShadow: 3 }}>
+      <Typography variant="subtitle1" gutterBottom>Analytics & Security</Typography>
+      <Grid container spacing={2}>
+        <Grid item xs={3}>
+          <Typography variant="subtitle2" color="text.secondary">Keystrokes</Typography>
+          <Typography variant="body1">{selectedSubmission?.keystrokes_count}</Typography>
+        </Grid>
+        <Grid item xs={3}>
+          <Typography variant="subtitle2" color="text.secondary">Copy/Paste</Typography>
+          <Typography variant="body1">{selectedSubmission?.copy_paste_events}</Typography>
+        </Grid>
+        <Grid item xs={3}>
+          <Typography variant="subtitle2" color="text.secondary">Tab Switches</Typography>
+          <Typography variant="body1">{selectedSubmission?.tab_switches}</Typography>
+        </Grid>
+        <Grid item xs={3}>
+          <Typography variant="subtitle2" color="text.secondary">Code Similarity</Typography>
+          <Typography variant="body1">{selectedSubmission?.code_similarity_score}</Typography>
+        </Grid>
+      </Grid>
+    </Paper>
+
+    {/* Source Code */}
+    <Paper sx={{ p: 3, borderRadius: 3, boxShadow: 3, backgroundColor: '#1e1e1e' }}>
+      <Typography variant="subtitle1" gutterBottom color="white">Source Code</Typography>
+      <Box
+        component="pre"
+        sx={{
+          maxHeight: '500px',
+          overflowY: 'auto',
+          fontFamily: 'monospace',
+          fontSize: 14,
+          whiteSpace: 'pre-wrap',
+          wordBreak: 'break-word',
+          color: '#d4d4d4',
+        }}
+      >
+        {selectedSubmission?.source_code}
+      </Box>
+    </Paper>
+  </DialogContent>
+</Dialog>
+
     </Box>
   );
 }
