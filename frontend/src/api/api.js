@@ -68,6 +68,26 @@ export const getContestDetail = async (id) => {
   }
 };
 
+export const checkContestEligibility = async (contestId) => {
+  try {
+    const response = await api.get(`/contests/${contestId}/check_eligibility/`);
+    return response.data;
+  } catch (error) {
+    console.error('Error checking contest eligibility:', error);
+    throw error;
+  }
+};
+
+export const toggleContestSharing = async (contestId) => {
+  try {
+    const response = await api.post(`/contests/${contestId}/toggle_sharing/`);
+    return response.data;
+  } catch (error) {
+    console.error('Error toggling contest sharing:', error);
+    throw error;
+  }
+};
+
 export const createContest = async (contestData) => {
   try {
     const response = await api.post('/contests/', contestData);

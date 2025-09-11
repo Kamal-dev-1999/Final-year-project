@@ -1,6 +1,8 @@
+import uuid
 from rest_framework import status, generics, viewsets, filters, permissions
 from rest_framework.response import Response
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
 from django.db.models import Count, Q, F, Case, When, IntegerField, Value, Sum, Avg
@@ -43,7 +45,107 @@ logger = logging.getLogger('contest.views')
 
 class ContestViewSet(viewsets.ModelViewSet):
     serializer_class = ContestSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated]
+
+    @action(detail=True, methods=['get'])
+    def check_eligibility(self, request, pk=None):
+        contest = self.get_object()
+        user = request.user
+        
+        # Admin users are always eligible
+        if user.role == 'ADMIN':
+            return Response({
+                'eligible': True,
+                'message': 'Admin access granted'
+            })
+
+        # Check if the contest is shared
+        if contest.is_shared:
+            return Response({
+                'eligible': True,
+                'message': 'Contest is shared and accessible'
+            })
+
+        # Check department eligibility
+        if contest.departments and user.department not in contest.departments:
+            return Response({
+                'eligible': False,
+                'message': 'You do not have access to this contest due to department restrictions'
+            }, status=status.HTTP_403_FORBIDDEN)
+
+        return Response({
+            'eligible': True,
+            'message': 'You have access to this contest'
+        })
+
+    def get_queryset(self):
+        """
+        Filter contests based on user type and department:
+        - Admins see all contests
+        - Students only see contests for their department
+        """
+        user = self.request.user
+        base_query = Contest.objects.all()
+
+        # Admin sees all contests
+        if hasattr(user, 'role') and user.role == 'ADMIN':
+            return base_query
+
+        # For write operations, only show contests created by the current admin
+        if self.action in ['create', 'update', 'partial_update', 'destroy']:
+            return base_query.filter(created_by=self.request.user)
+
+        # For students, filter by department and active status
+        return base_query.filter(
+            departments__contains=[user.department],
+            is_active=True,
+            start_time__lte=timezone.now(),
+            end_time__gte=timezone.now()
+        )
+
+    @action(detail=True, methods=['post'])
+    def toggle_sharing(self, request, pk=None):
+        """Toggle contest sharing and generate/remove share link"""
+        contest = self.get_object()
+        if contest.created_by != request.user and not request.user.is_staff:
+            return Response({'error': 'Unauthorized'}, status=403)
+            
+        contest.share_enabled = not contest.share_enabled
+        if contest.share_enabled and not contest.share_link:
+            import uuid
+            contest.share_link = f"contest-{uuid.uuid4().hex[:8]}"
+        elif not contest.share_enabled:
+            contest.share_link = None
+        contest.save()
+        
+        return Response({
+            'share_enabled': contest.share_enabled,
+            'share_link': contest.share_link
+        })    @action(detail=True, methods=['get'])
+    def check_eligibility(self, request, pk=None):
+        """Check if user's department is allowed to access the contest"""
+        contest = self.get_object()
+        user = request.user
+        
+        if not user.is_authenticated:
+            return Response({
+                "eligible": False, 
+                "message": "Please login first"
+            }, status=status.HTTP_401_UNAUTHORIZED)
+        
+        # Admin is always eligible
+        if hasattr(user, 'role') and user.role == 'ADMIN':
+            return Response({
+                "eligible": True,
+                "message": "Admin has full access"
+            })
+            
+        is_eligible = user.department in contest.departments
+        return Response({
+            "eligible": is_eligible,
+            "message": "You are eligible for this contest" if is_eligible 
+                      else "Your department is not eligible for this contest"
+        })
     
     def initial(self, request, *args, **kwargs):
         """
@@ -100,6 +202,17 @@ class ContestViewSet(viewsets.ModelViewSet):
         logger.info("Returning all contests for read operation")
         return Contest.objects.all()
 
+    def check_eligibility(self,request,pk=None):
+        contest = self.get_object()
+        user = request.user
+        if not user.is_authenticated:
+            raise PermissionDenied({"eligible":False,"message":"Authentication required to access this contest."},status=status.HTTP_401_UNAUTHORIZED)
+        is_eligible = user.department in contest.departments
+        return Response({
+            "eligible": is_eligible,
+            "message": "User is eligible to access this contest." if is_eligible else "User is not eligible to access this contest, please contact the administrator."
+        })
+
     def perform_create(self, serializer):
         user = self.request.user
         logger.info(f"Creating new contest. Creator: {user} (ID: {user.id})")
@@ -114,6 +227,68 @@ class ContestViewSet(viewsets.ModelViewSet):
         logger.info(f"Retrieve view accessed by user: {request.user} (ID: {request.user.id if request.user.is_authenticated else 'Anonymous'})")
         logger.info(f"Requested contest ID: {kwargs.get('pk')}")
         return super().retrieve(request, *args, **kwargs)
+
+    @action(detail=True, methods=['post'])
+    def enable_sharing(self, request, pk=None):
+        """Enable sharing for a contest and generate share link"""
+        contest = self.get_object()
+        if request.user == contest.created_by or request.user.is_staff:
+            contest.share_enabled = True
+            if not contest.share_link:
+                import uuid
+                contest.share_link = f"contest-{uuid.uuid4().hex[:8]}"
+            contest.save()
+            return Response({
+                'share_enabled': contest.share_enabled,
+                'share_link': contest.share_link
+            })
+        return Response({'error': 'Unauthorized'}, status=403)
+
+    @action(detail=False, methods=['get'], url_path='resolve-share/(?P<share_id>[^/.]+)')
+    def resolve_share(self, request, share_id=None):
+        """Resolve a share link to get the contest ID"""
+        try:
+            contest = Contest.objects.get(share_link=share_id, share_enabled=True)
+            
+            # Admin users and contest creators have direct access
+            if hasattr(request.user, 'role') and request.user.role == 'ADMIN':
+                return Response({
+                    'contest_id': contest.id,
+                    'title': contest.title
+                })
+
+            # If user is the contest creator
+            if contest.created_by == request.user:
+                return Response({
+                    'contest_id': contest.id,
+                    'title': contest.title
+                })
+
+            # For regular users, check department access
+            user_department = getattr(request.user, 'department', None)
+            if not user_department or user_department not in contest.departments:
+                return Response(
+                    {'error': 'Your department does not have access to this contest'},
+                    status=403
+                )
+
+            return Response({
+                'contest_id': contest.id,
+                'title': contest.title
+            })
+
+        except Contest.DoesNotExist:
+            return Response(
+                {'error': 'Invalid or expired share link'},
+                status=404
+            )
+        except Exception as e:
+            print(f"Error in resolve_share: {str(e)}")  # Debug log
+            return Response(
+                {'error': 'An error occurred while resolving the share link'},
+                status=500
+            )
+
 
 class ProblemViewSet(viewsets.ModelViewSet):
     serializer_class = ProblemSerializer

@@ -13,6 +13,7 @@ const DashboardPage = React.lazy(() => import('./pages/DashboardPage'));
 const ContestListPage = React.lazy(() => import('./pages/ContestListPage'));
 const ContestDetailPage = React.lazy(() => import('./pages/ContestDetailPage'));
 const CreateContestPage = React.lazy(() => import('./pages/CreateContestPage'));
+const SharedContestPage = React.lazy(() => import('./pages/SharedContestPage'));
 const ProfilePage = React.lazy(() => import('./pages/ProfilePage'));
 const NotFoundPage = React.lazy(() => import('./pages/NotFoundPage'));
 
@@ -168,6 +169,7 @@ function App() {
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/contests" element={<ContestListPage />} />
             <Route path="/contests/create" element={<CreateContestPage />} />
+            <Route path="/contests/share/:shareId" element={<SharedContestPage />} />
             <Route path="/contests/:id" element={<ContestDetailPage />} />
           </Route>
 

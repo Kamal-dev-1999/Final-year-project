@@ -81,13 +81,19 @@ class UserBasicSerializer(serializers.ModelSerializer):
 
 class ContestSerializer(serializers.ModelSerializer):
     problems = ProblemSerializer(many=True, read_only=True)
-    created_by = UserBasicSerializer(read_only=True)
-    
+
     class Meta:
         model = Contest
-        fields = ['id', 'title', 'description', 'start_time', 'end_time', 'created_by', 'problems']
-        read_only_fields = ['created_by']
-        
+        fields = ('id', 'title', 'description', 'start_time', 'end_time', 'created_by', 'problems',
+                 'departments', 'share_enabled', 'share_link', 'is_active')
+        read_only_fields = ('created_by', 'share_link')
+    
+    def create(self, validated_data):
+        if validated_data.get('share_enabled'):
+            import uuid
+            validated_data['share_link'] = f"contest-{str(uuid.uuid4().hex[:8])}"
+        return super().create(validated_data)
+    
     def to_representation(self, instance):
         representation = super().to_representation(instance)
         # Ensure created_by is always included in the response

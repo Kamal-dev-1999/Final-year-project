@@ -20,7 +20,9 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  FormHelperText
+  FormHelperText,
+  FormControlLabel,
+  Switch
 } from '@mui/material';
 import { createContest } from '../api/api';
 import { LocalizationProvider, DateTimePicker } from '@mui/x-date-pickers';
@@ -45,7 +47,9 @@ export default function CreateContestPage() {
     start_time: null, 
     end_time: null,
     difficulty: 'Medium',
-    max_participants: 100
+    max_participants: 100,
+    departments: [],
+    share_enabled: false
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -100,6 +104,9 @@ export default function CreateContestPage() {
     setLoading(false);
   };
 
+  // List of available departments
+  const DEPARTMENTS = ['CSE', 'IT', 'ECE', 'EEE', 'MECH', 'CIVIL'];
+
   const getStepContent = (step) => {
     switch (step) {
       case 0:
@@ -125,18 +132,63 @@ export default function CreateContestPage() {
                   }}
                 />
               </Grid>
-              <Grid item xs={12}>
+                            <Grid item xs={12}>
                 <TextField
                   name="description"
                   label="Description"
                   value={form.description}
                   onChange={handleChange}
+                  multiline
+                  rows={4}
                   fullWidth
                   required
-                  multiline
-                  minRows={4}
-                  placeholder="Describe the contest, its objectives, and what participants can expect..."
-                  sx={{ mb: 2 }}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <FormControl fullWidth>
+                  <InputLabel>Eligible Departments</InputLabel>
+                  <Select
+                    multiple
+                    name="departments"
+                    value={form.departments}
+                    onChange={(e) => handleChange({
+                      target: {
+                        name: 'departments',
+                        value: e.target.value
+                      }
+                    })}
+                    renderValue={(selected) => (
+                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                        {selected.map((value) => (
+                          <Chip key={value} label={value} />
+                        ))}
+                      </Box>
+                    )}
+                  >
+                    {DEPARTMENTS.map((dept) => (
+                      <MenuItem key={dept} value={dept}>
+                        {dept}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                  <FormHelperText>Select departments that can access this contest</FormHelperText>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12}>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={form.share_enabled}
+                      onChange={(e) => handleChange({
+                        target: {
+                          name: 'share_enabled',
+                          value: e.target.checked
+                        }
+                      })}
+                      name="share_enabled"
+                    />
+                  }
+                  label="Enable Contest Sharing"
                 />
               </Grid>
               <Grid item xs={12} sm={6}>

@@ -19,10 +19,13 @@ import {
   IconButton,
   Stepper,
   Step,
-  StepLabel
+  StepLabel,
+  Snackbar
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import ShareIcon from '@mui/icons-material/Share';
+import CheckIcon from '@mui/icons-material/Check';
 import AddProblemsForm from '../components/AddProblemsForm';
 import SubmissionAnalytics from '../components/SubmissionAnalytics';
 import UserMonitoring from '../components/UserMonitoring';
@@ -59,9 +62,50 @@ export default function ContestDetailPage() {
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState(0);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
   
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue);
+  };
+
+  const handleShareContest = async () => {
+    try {
+      // Always try to enable/get sharing link first
+      const response = await fetch(`/api/contests/${id}/enable_sharing/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to enable sharing');
+      }
+      
+      const data = await response.json();
+      if (!data.share_link) {
+        throw new Error('No share link generated');
+      }
+
+      // Update contest state with new share data
+      setContest(prev => ({
+        ...prev,
+        share_enabled: true,
+        share_link: data.share_link
+      }));
+
+      // Generate shareable link using the encrypted share_link
+      const shareLink = `${window.location.origin}/contests/share/${data.share_link}`;
+      await navigator.clipboard.writeText(shareLink);
+      setSnackbarMessage('Secure contest link copied to clipboard!');
+      setSnackbarOpen(true);
+    } catch (err) {
+      console.error('Sharing error:', err);
+      setSnackbarMessage('Failed to generate/copy link. Please try again.');
+      setSnackbarOpen(true);
+    }
   };
 
   useEffect(() => {
@@ -220,18 +264,37 @@ export default function ContestDetailPage() {
                 {contest.title}
               </Typography>
               {isAdmin && (
-                <Button
-                  variant="contained"
-                  onClick={() => setActiveTab(1)}
-                  sx={{
-                    backgroundColor: ORANGE,
-                    '&:hover': { backgroundColor: '#e59114' },
-                    px: 3,
-                    py: 1
-                  }}
-                >
-                  Add Problems
-                </Button>
+                <Stack direction="row" spacing={2}>
+                  <Button
+                    variant="outlined"
+                    onClick={handleShareContest}
+                    startIcon={<ShareIcon />}
+                    sx={{
+                      borderColor: ORANGE,
+                      color: ORANGE,
+                      '&:hover': { 
+                        backgroundColor: 'rgba(255, 161, 22, 0.04)',
+                        borderColor: ORANGE 
+                      },
+                      px: 3,
+                      py: 1
+                    }}
+                  >
+                    Share Contest
+                  </Button>
+                  <Button
+                    variant="contained"
+                    onClick={() => setActiveTab(1)}
+                    sx={{
+                      backgroundColor: ORANGE,
+                      '&:hover': { backgroundColor: '#e59114' },
+                      px: 3,
+                      py: 1
+                    }}
+                  >
+                    Add Problems
+                  </Button>
+                </Stack>
               )}
             </Stack>
             
@@ -533,6 +596,13 @@ export default function ContestDetailPage() {
           </Paper>
         )}
       </Box>
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={3000}
+        onClose={() => setSnackbarOpen(false)}
+        message={snackbarMessage}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      />
     </Box>
   );
 } 

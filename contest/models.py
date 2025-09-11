@@ -9,6 +9,10 @@ class Contest(models.Model):
     start_time = models.DateTimeField()
     end_time = models.DateTimeField()
     created_by = models.ForeignKey(User, on_delete=models.CASCADE, limit_choices_to={'role': User.Role.ADMIN})
+    departments = models.JSONField(default=list, help_text="List of departments that can access this contest", blank=True, null=True)
+    share_enabled = models.BooleanField(default=False, help_text="Whether the contest can be shared publicly")
+    share_link = models.CharField(max_length=255, blank=True, null=True, help_text="Public link that can be shared if sharing is enabled")
+    is_active = models.BooleanField(default=True)
 
     def __str__(self):
         return self.title
