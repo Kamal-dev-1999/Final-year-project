@@ -42,11 +42,32 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'users',
     'contest',
-    
+    'notifications',
 ]
 JUDGE0_API_KEY = '6bfdd0f131msh858a540e469e6e9p1e9985jsnf362acc25481'
 JUDGE0_API_HOST = 'judge0-ce.p.rapidapi.com'
 JUDGE0_API_URL = 'https://judge0-ce.p.rapidapi.com'
+
+# Email Configuration
+# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+# EMAIL_HOST = 'smtp.gmail.com'
+# EMAIL_PORT = 587
+# EMAIL_USE_TLS = True
+# EMAIL_HOST_USER = 'your-email@gmail.com'  # Update this
+# EMAIL_HOST_PASSWORD = 'your-app-password'  # Update this
+# DEFAULT_FROM_EMAIL = 'your-email@gmail.com'  # Update this
+
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'contact@materialyz.com'
+EMAIL_HOST_PASSWORD = 'eagh pfer uipg cxpl'
+DEFAULT_FROM_EMAIL = 'contact@materialyz.com'
+
+# Frontend URL for email links
+FRONTEND_URL = 'http://localhost:5173'  # Update this for production
 
 # JUDGE0_API_URL = 'http://localhost:2358'  # Your Judge0 instance
 MIDDLEWARE = [

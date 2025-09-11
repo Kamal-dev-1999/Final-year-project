@@ -14,6 +14,7 @@ const ContestListPage = React.lazy(() => import('./pages/ContestListPage'));
 const ContestDetailPage = React.lazy(() => import('./pages/ContestDetailPage'));
 const CreateContestPage = React.lazy(() => import('./pages/CreateContestPage'));
 const SharedContestPage = React.lazy(() => import('./pages/SharedContestPage'));
+const EmailManagementPage = React.lazy(() => import('./pages/EmailManagementPage'));
 const ProfilePage = React.lazy(() => import('./pages/ProfilePage'));
 const NotFoundPage = React.lazy(() => import('./pages/NotFoundPage'));
 
@@ -171,6 +172,7 @@ function App() {
             <Route path="/contests/create" element={<CreateContestPage />} />
             <Route path="/contests/share/:shareId" element={<SharedContestPage />} />
             <Route path="/contests/:id" element={<ContestDetailPage />} />
+            <Route path="/email-management" element={<EmailManagementPage />} />
           </Route>
 
           {/* 404 Not Found */}

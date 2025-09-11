@@ -11,6 +11,7 @@ const navItems = [
   { text: 'Dashboard', path: '/' },
   { text: 'Contests', path: '/contests' },
   { text: 'Create Contest', path: '/contests/create' },
+  { text: 'Email Management', path: '/email-management', adminOnly: true },
   { text: 'Profile', path: '/profile' },
 ];
 
@@ -18,10 +19,26 @@ function isAuthenticated() {
   return !!localStorage.getItem('token');
 }
 
+function isAdmin() {
+  const userString = localStorage.getItem('user');
+  console.log('Raw user string:', userString);
+  try {
+    const user = JSON.parse(userString || '{}');
+    console.log('Parsed user data:', user);
+    // Check if the user has role "ADMIN"
+    return user.role === 'ADMIN';
+  } catch (e) {
+    console.error('Error parsing user data:', e);
+    return false;
+  }
+}
+
 export default function MainLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const authenticated = isAuthenticated();
+  const isUserAdmin = isAdmin();
+  console.log('Final admin status:', isUserAdmin);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -86,6 +103,9 @@ export default function MainLayout() {
           <List sx={{ py: 1 }}>
             {navItems.map((item) => {
               const isActive = location.pathname === item.path;
+              if (item.adminOnly && !isUserAdmin) {
+                return null;
+              }
               return (
                 <ListItem
                   button
